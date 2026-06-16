@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Trend Forecasting — Project Brief (CV / portfólio)</title>
+<meta name="description" content="Brief técnico detalhado do projeto Weather Trend Forecasting: pipeline de previsão de temperatura leakage-safe sobre o Kaggle Global Weather Repository. Stack, decisões de arquitetura, resultados e competências demonstradas (DA/DE/DS).">
+<style>
+  :root{
+    --bg:#0f1419; --surface:#171d26; --surface2:#1e2630; --border:#2b3947;
+    --text:#e6edf3; --muted:#9fb0c0; --accent:#4cc2ff; --accent2:#7ee787;
+    --warn:#f0a868; --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;font-size:16px}
+  .wrap{max-width:980px;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+  header{border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:2rem}
+  h1{font-size:2rem;margin:0 0 .35rem;line-height:1.2}
+  h2{font-size:1.4rem;margin:2.6rem 0 .8rem;padding-bottom:.35rem;border-bottom:1px solid var(--border)}
+  h3{font-size:1.08rem;margin:1.6rem 0 .5rem;color:var(--accent)}
+  .sub{color:var(--muted);font-size:1.05rem;margin:.2rem 0}
+  .role{display:inline-block;margin-top:.6rem;padding:.25rem .7rem;border:1px solid var(--accent);
+    border-radius:999px;color:var(--accent);font-size:.82rem;font-weight:600}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  p{margin:.5rem 0 .8rem}
+  ul,ol{margin:.4rem 0 .9rem;padding-left:1.3rem}
+  li{margin:.3rem 0}
+  code{font-family:var(--mono);background:var(--surface2);padding:.1rem .35rem;border-radius:4px;
+    font-size:.86em;color:var(--accent2)}
+  .lead{font-size:1.08rem;color:var(--text)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1rem 0}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem}
+  .card h4{margin:0 0 .4rem;font-size:.95rem;color:var(--accent)}
+  .card p{margin:0;color:var(--muted);font-size:.92rem}
+  .stat{font-size:1.7rem;font-weight:700;color:var(--accent2);line-height:1}
+  .stat small{display:block;font-size:.78rem;color:var(--muted);font-weight:400;margin-top:.3rem}
+  table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+  tbody tr:hover{background:var(--surface)}
+  .win{color:var(--accent2);font-weight:700}
+  .fail{color:var(--warn);font-weight:700}
+  .badges{display:flex;flex-wrap:wrap;gap:.45rem;margin:.6rem 0 1rem}
+  .badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+    padding:.28rem .6rem;font-size:.82rem;font-family:var(--mono);color:var(--text)}
+  .decision{background:var(--surface);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+    padding:.8rem 1.1rem;margin:.9rem 0}
+  .decision b{color:var(--text)}
+  .decision .why{color:var(--muted);font-size:.92rem;margin-top:.25rem}
+  .tag{display:inline-block;font-size:.72rem;font-family:var(--mono);color:var(--bg);
+    background:var(--accent2);border-radius:4px;padding:.05rem .4rem;margin-left:.4rem;vertical-align:middle}
+  .callout{background:#172029;border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem;margin:1.2rem 0}
+  .cv-bullets li{margin:.45rem 0}
+  footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid var(--border);color:var(--muted);font-size:.88rem}
+  .muted{color:var(--muted)}
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1rem;margin:.6rem 0}
+  .kv dt{color:var(--muted);font-size:.9rem}
+  .kv dd{margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Weather Trend Forecasting</h1>
+  <p class="sub">Pipeline de previsão de temperatura diária de cidades do mundo, <em>leakage-safe</em>, sobre o dataset <strong>Kaggle Global Weather Repository</strong>.</p>
+  <p class="sub muted">Entregável de assessment técnico (PM Accelerator — Data Scientist / Analyst), construído para demonstrar competências de Data Analyst, Data Engineer e Data Scientist num único projeto end-to-end.</p>
+  <span class="role">Papel: autor único — design, engenharia, modelagem, análise e documentação</span>
+</header>
+
+<p class="lead">Este documento é um <strong>brief técnico completo</strong> do projeto, pensado para alimentar a montagem de currículo: descreve o que é, para que serve, as decisões técnicas de destaque, o stack envolvido, os resultados reais e o mapeamento das competências demonstradas. Todos os números abaixo vêm de uma <strong>execução real sobre os dados do Kaggle</strong> (147.735 snapshots · 268 cidades · 211 países · 2024-05-16 a 2026-06-16).</p>
+
+<h2>1. O que é e para que serve</h2>
+<p>O projeto <strong>prevê a temperatura (<code>temperature_celsius</code>) dos próximos dias para cidades do mundo todo</strong> a partir de um histórico de snapshots meteorológicos diários. O grão é explícito: <em>1 linha = 1 cidade num instante <code>last_updated</code></em>, com a chave de entidade <code>(country, location_name)</code>.</p>
+<p>Para além do forecast, entrega um <strong>sistema analítico completo</strong>: limpeza defensiva de dados, EDA, detecção de anomalias avançada, cinco análises temáticas (clima, qualidade do ar, importância de features, espacial e geográfica) e um <em>notebook</em> narrativo reprodutível. Serve como peça de portfólio que mostra rigor de modelagem de séries temporais (prevenção de <em>data leakage</em>, backtesting honesto, baselines obrigatórios) e maturidade de engenharia (pipeline modular, reprodutível e tolerante a falhas).</p>
+
+<div class="grid">
+  <div class="card"><div class="stat">21<small>módulos Python no pacote <code>weather_forecast</code></small></div></div>
+  <div class="card"><div class="stat">25<small>testes (pytest), incl. <em>guards</em> de leakage</small></div></div>
+  <div class="card"><div class="stat">147.735<small>snapshots reais · 268 cidades · 211 países</small></div></div>
+  <div class="card"><div class="stat">16 + 16<small>figuras + tabelas de métricas geradas</small></div></div>
+</div>
+
+<h2>2. Problema, objetivo e por que é difícil</h2>
+<ul>
+  <li><strong>Objetivo de negócio:</strong> previsão de temperatura de curto prazo (horizonte de 7 dias) comparável entre cidades de climas radicalmente diferentes.</li>
+  <li><strong>Desafio 1 — histórico curto:</strong> o repositório é um snapshot rolante (sub-anual a ~1 ano por cidade). Sazonalidade anual e tendência climática <em>não</em> são aprendíveis; modela-se sazonalidade semanal e enquadra-se "clima" honestamente como variação dentro da amostra.</li>
+  <li><strong>Desafio 2 — séries curtas e ruidosas por cidade:</strong> ajustar um ARIMA por série de ~200 pontos superajusta. Daí a aposta num <strong>modelo global em painel</strong> que agrega sinal entre cidades.</li>
+  <li><strong>Desafio 3 — risco de <em>data leakage</em>:</strong> alvo autocorrelacionado + features exógenas + janela multi-step são armadilhas clássicas de vazamento. Tratar isso é o <em>core correctness story</em> do projeto.</li>
+  <li><strong>Desafio 4 — anti-fase de hemisférios:</strong> dezembro é verão no Sul e inverno no Norte; agregar ingenuamente cancelaria o ciclo. Tudo que depende de estação separa por <code>sign(latitude)</code>.</li>
+</ul>
+
+<h2>3. Stack tecnológico</h2>
+<dl class="kv">
+  <dt>Linguagem</dt><dd>Python 3.11+ (desenvolvido/verificado em 3.14)</dd>
+  <dt>Dados / numérico</dt><dd>pandas, numpy, scipy</dd>
+  <dt>Séries temporais clássicas</dt><dd>statsmodels — Holt-Winters <code>ExponentialSmoothing</code> (ETS), <code>SARIMAX(1,1,1)(1,0,1,7)</code>, <code>STL</code></dd>
+  <dt>Machine Learning</dt><dd>XGBoost (<code>XGBRegressor</code>, <code>tree_method="hist"</code>), LightGBM (opcional), scikit-learn (IsolationForest, LocalOutlierFactor, StandardScaler, LinearRegression/Ridge, permutation_importance)</dd>
+  <dt>Forecasting opcional</dt><dd>Prophet (weekly-only, import-guarded)</dd>
+  <dt>Explicabilidade</dt><dd>SHAP (TreeExplainer, opcional) + permutation importance + native gain</dd>
+  <dt>Validação de dados</dt><dd>pandera (DataFrameSchema, com fallback para asserts)</dd>
+  <dt>Visualização</dt><dd>matplotlib (Agg) + Plotly (express / graph_objects, mapas natural-earth GDAL-free, export PNG via kaleido)</dd>
+  <dt>Geo</dt><dd>pycountry_convert (opcional) → continente; banding de zona climática por latitude</dd>
+  <dt>Persistência</dt><dd>Parquet (tipado, tz-aware) para intermediários; CSV/JSON para métricas</dd>
+  <dt>Qualidade / testes</dt><dd>pytest (25 testes), ruff (lint), src-layout + editable install</dd>
+  <dt>Narrativa</dt><dd>Jupyter + nbformat (notebook gerado programaticamente a partir do pacote)</dd>
+</dl>
+<div class="badges">
+  <span class="badge">python</span><span class="badge">pandas</span><span class="badge">numpy</span><span class="badge">scipy</span>
+  <span class="badge">statsmodels</span><span class="badge">xgboost</span><span class="badge">lightgbm</span><span class="badge">scikit-learn</span>
+  <span class="badge">prophet</span><span class="badge">shap</span><span class="badge">pandera</span><span class="badge">plotly</span>
+  <span class="badge">matplotlib</span><span class="badge">pyarrow/parquet</span><span class="badge">pytest</span><span class="badge">ruff</span><span class="badge">jupyter</span>
+</div>
+
+<h2>4. Arquitetura &amp; design</h2>
+<p>Pacote <code>src/weather_forecast/</code> com <strong>I/O nas bordas e núcleo de funções puras</strong>. Um único entrypoint (<code>run_pipeline.py</code>) produz todos os artefatos. Princípios:</p>
+<ul>
+  <li><strong>Single source of truth (<code>config.py</code>):</strong> colunas, grão, chave, alvo, seeds, horizonte, limites físicos e listas de colunas vazantes ficam num só módulo-folha (sem I/O no import). Nenhum outro módulo hard-codeia nome de coluna ou caminho.</li>
+  <li><strong>Borda de ingestão isolada (<code>ingest.py</code>):</strong> único módulo que lê o CSV cru — normaliza schema (regex snake_case idempotente), faz parse <em>tz-aware UTC</em>, dropa os gêmeos imperiais e valida.</li>
+  <li><strong>Pipeline degrade-not-crash (<code>pipeline.py</code>):</strong> o caminho central (ingest→clean→features→backtest) precisa passar; cada bloco de análise/figura é embrulhado em <code>_try</code>, então uma falha vira <em>warning</em> logado em vez de derrubar a execução.</li>
+  <li><strong>Reprodutível e idempotente:</strong> <code>SEED=42</code> em tudo, xgboost determinístico, Parquet tipado, mesmos inputs → mesmos outputs, sem paths absolutos.</li>
+  <li><strong>Graceful degradation (<code>optional_deps.py</code>):</strong> lightgbm, prophet, shap, pandera, kaleido, pycountry_convert são <em>import-guarded</em> — uma wheel ausente vira skip logado, nunca um crash. Permite "Restart &amp; Run All" limpo em qualquer máquina.</li>
+  <li><strong>Fallback sintético determinístico (<code>synthetic.py</code>):</strong> sem o CSV do Kaggle, o pipeline roda sobre um gerador fiel ao schema (ruído AR(1), precip zero-inflada, etc.), então qualquer revisor executa tudo com zero download e a CI passa.</li>
+</ul>
+
+<h3>Estrutura de módulos (responsabilidade · técnica)</h3>
+<table>
+  <thead><tr><th>Módulo</th><th>Responsabilidade &amp; técnica concreta</th></tr></thead>
+  <tbody>
+    <tr><td><code>config.py</code></td><td>Constantes-folha: grão, seeds, horizonte, <code>PHYSICAL_BOUNDS</code>, <code>LEAKY_OR_TWIN_COLS</code>, knobs de anomalia.</td></tr>
+    <tr><td><code>ingest.py</code></td><td>Carga + normalização de schema + coerção de dtypes (tz-aware UTC, Int16 nullable, category) + validação estrutural + fallback sintético.</td></tr>
+    <tr><td><code>cleaning.py</code></td><td>Dedup (keep-last em colisão de chave) → gating físico (NaN, não clip) → imputação per-city time-aware → flag de outlier (MAD per city-month) → validação pandera.</td></tr>
+    <tr><td><code>engineering.py</code></td><td>Calendário + encodings cíclicos sin/cos + lags per-city (<code>shift(k)</code>) + rollings <code>shift(1).rolling</code> + exógenas defasadas.</td></tr>
+    <tr><td><code>backtest.py</code></td><td>CV rolling-origin / expanding-window num eixo de data global; folds com assert <code>train.max_day &lt; test.min_day</code>; Track B como <em>direct multi-horizon</em>.</td></tr>
+    <tr><td><code>models.py</code></td><td>ETS, SARIMAX, Prophet (opcional) + XGBoost/LightGBM; todos com fallback a seasonal-naive em falha de convergência.</td></tr>
+    <tr><td><code>metrics.py</code></td><td>MAE, RMSE, sMAPE, MAPE (<em>guarded</em>), MASE + baselines (naive, seasonal-naive, drift, climatology).</td></tr>
+    <tr><td><code>ensemble.py</code></td><td>Pesos por erro inverso (dropa MASE≥1) + stacking não-negativo (<code>LinearRegression(positive=True)</code>) só sobre OOF.</td></tr>
+    <tr><td><code>anomaly.py</code></td><td>Modified z-score (Iglewicz-Hoaglin) + Tukey 1.5·IQR + STL + IsolationForest ∩ LOF; relativo a (city, month) + análise de lift e artefato de ingestão.</td></tr>
+    <tr><td><code>feature_importance.py</code></td><td>Três lentes: permutation (validação), native gain (rotulada "biased"), SHAP (opcional); re-assert de colunas vazantes.</td></tr>
+    <tr><td><code>profiling.py</code></td><td>EDA defensiva (schema, grão, cobertura, zero-inflation) + seleção determinística de cidades representativas por diversidade de zona climática.</td></tr>
+    <tr><td><code>climate.py · air_quality.py · spatial.py · regions.py</code></td><td>Cinco análises únicas: ciclo sazonal por zona, correlação ar↔clima (Spearman), mapas geo (Plotly natural-earth), enriquecimento continente/zona climática.</td></tr>
+    <tr><td><code>plots.py · pipeline.py · logging_utils.py · synthetic.py</code></td><td>Figuras matplotlib, orquestração, logging UTF-8 (fix Py 3.14) e gerador sintético.</td></tr>
+  </tbody>
+</table>
+
+<h2>5. Principais decisões técnicas <span class="muted">(os destaques de senioridade)</span></h2>
+
+<div class="decision">
+  <b>Prevenção de data leakage por construção</b> <span class="tag">DS</span>
+  <div class="why">O eixo central do projeto. Seis mecanismos enforçados por <code>assert</code> e testes: (1) backtest só cronológico (rolling-origin, sem KFold/shuffle, fold assert <code>train.max_day &lt; test.min_day</code>); (2) features causais (<code>groupby(city).shift(k)</code>; rollings com <code>shift(1)</code> antes do <code>rolling</code>); (3) exógenas só defasadas (não se conhece a umidade de amanhã); (4) alvo e gêmeos vazantes excluídos (<code>temperature_fahrenheit</code> É o alvo; <code>feels_like_*</code> é função quase determinística dele); (5) steps com estado ajustam só no treino (stacker só em OOF); (6) <em>direct multi-step</em> — o modelo global prevê cada horizonte a partir da origem, nunca lendo o real intra-janela.</div>
+</div>
+
+<div class="decision">
+  <b>MASE como métrica primária + baselines obrigatórios</b> <span class="tag">DS</span>
+  <div class="why">MASE é scale-free e comparável entre cidades (um erro de 2 °C significa coisas diferentes em Nairóbi e Moscou). Baselines (naive, seasonal-naive, drift, climatology) são mandatórios: um modelo que não bate o seasonal-naive não é entregue. Métricas computadas por (cidade, fold) e depois macro-averaged, para cidades grandes não dominarem. MAPE é <em>guarded</em> (temperatura cruza 0 °C → percentual explode; mostrado só para demonstrar consciência do problema).</div>
+</div>
+
+<div class="decision">
+  <b>Dois tracks: clássico per-city vs ML global em painel</b> <span class="tag">DS</span>
+  <div class="why">Track A (ETS, SARIMAX, baselines) é o teto interpretável por série; Track B (XGBoost/LightGBM global) é o modelo deployável que agrega sinal entre cidades. Comparados nos mesmos folds. Resultado real: empate técnico nas cidades representativas, com o global vencendo no painel completo — a escolha de produção é o global (1 modelo vs 268, generaliza a cidades novas sem refit).</div>
+</div>
+
+<div class="decision">
+  <b>Limpeza defensiva: flag-and-keep, não clip</b> <span class="tag">DE</span> <span class="tag">DS</span>
+  <div class="why">Outliers são <em>marcados</em> (<code>&lt;col&gt;_is_outlier</code> via MAD robusto por city-month), nunca cortados — ondas de calor e friagens são justamente o que o forecaster precisa prever. Valores fisicamente impossíveis (ex.: 150 °C) viram NaN como erro de sensor, distinto de extremos raros-mas-reais. Imputação per-city time-aware (interpolação para gaps curtos; precip→0 estrutural; AQI com flag <code>_was_missing</code> porque a ausência é informativa). <strong>O alvo nunca é imputado.</strong></div>
+</div>
+
+<div class="decision">
+  <b>Detecção de anomalia relativa a (cidade, estação)</b> <span class="tag">DS</span>
+  <div class="why">Um inverno de −15 °C em Reykjavík é localmente normal — anomalias são definidas contra o par (city, month), nunca o pool global. Combina univariado (modified z-score + IQR + STL) com multivariado (IsolationForest ∩ LOF). Vai além do flag: <code>anomaly_condition_lift</code> liga anomalias ao <code>condition_text</code> (sanity check) e <code>anomalies_by_time</code> distingue eventos locais de <em>suspeitos artefatos de ingestão</em> (uma data em que uma fração desproporcional de cidades dispara).</div>
+</div>
+
+<div class="decision">
+  <b>Ensemble: pesos por erro inverso + stacking OOF</b> <span class="tag">DS</span>
+  <div class="why">Blend por erro inverso de backtest, descartando qualquer modelo com MASE≥1. Stacking é um meta-learner linear <em>não-negativo</em> treinado <strong>só</strong> sobre predições out-of-fold (predições in-fold vazariam). A matriz OOF é deduplicada em folds sobrepostos.</div>
+</div>
+
+<div class="decision">
+  <b>Engenharia de software de dados: reprodutibilidade &amp; tolerância a falha</b> <span class="tag">DE</span>
+  <div class="why">src-layout + editable install (mesmo <code>import weather_forecast</code> em CLI/notebook/pytest), Parquet tipado tz-aware, idempotência byte-stable, zero paths absolutos, optional deps import-guarded, e UTF-8 forçado no stdout do Windows (Py 3.14 default cp1252 quebraria em <code>°</code>/<code>—</code>). O notebook é <em>gerado</em> a partir do pacote (nada de lógica redefinida) e roda top-to-bottom em kernel limpo.</div>
+</div>
+
+<h3>Alternativas descartadas (e quando venceriam)</h3>
+<ul>
+  <li><strong>ARIMA per-city como modelo principal</strong> — descartado: superajusta séries curtas. Venceria com histórico multi-ano por cidade.</li>
+  <li><strong>Star-schema / wide reshaping</strong> — desnecessário: o painel já é <em>tidy</em> no grão escolhido.</li>
+  <li><strong>Clipping/winsorizing de outliers</strong> — descartado: deleta o clima extremo que se quer prever. Reservado só para um ramo linear/NN, train-only.</li>
+  <li><strong>Anomalia por Mahalanobis</strong> — descartado: o painel é multimodal (zonas climáticas), uma única média/covariância está errada; isolation tree não assume distribuição.</li>
+</ul>
+
+<h2>6. Resultados (execução real)</h2>
+<p>Macro-média sobre (cidade × fold), cidades representativas, ordenado por MASE (MASE &lt; 1 bate o seasonal-naive):</p>
+<table>
+  <thead><tr><th>Modelo</th><th>MASE ↓</th><th>MAE (°C)</th><th>RMSE</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td><b>sarimax</b></td><td class="win">0.786</td><td>2.63</td><td>3.11</td><td>melhor clássico (per-city)</td></tr>
+    <tr><td>xgb_global</td><td>0.794</td><td>2.67</td><td>3.20</td><td>empate técnico (Δ0.008 &lt; std)</td></tr>
+    <tr><td>lgbm_global</td><td>0.800</td><td>2.67</td><td>3.17</td><td>painel global</td></tr>
+    <tr><td>ets</td><td>0.826</td><td>2.77</td><td>3.28</td><td>Holt-Winters</td></tr>
+    <tr><td>naive</td><td>0.884</td><td>2.96</td><td>3.44</td><td>persistência — a barra real a bater</td></tr>
+    <tr><td>drift</td><td>0.898</td><td>3.02</td><td>3.52</td><td></td></tr>
+    <tr><td>seasonal_naive</td><td class="fail">1.115</td><td>3.67</td><td>4.23</td><td>falha out-of-sample (&gt;1)</td></tr>
+    <tr><td>climatology</td><td class="fail">1.527</td><td>4.79</td><td>5.33</td><td>fraco em histórico sub-anual</td></tr>
+  </tbody>
+</table>
+<div class="callout">
+  <p style="margin:0 0 .5rem"><strong>Leituras-chave (insights reais e não-óbvios):</strong></p>
+  <ul style="margin:0">
+    <li>No <strong>painel completo de 268 cidades</strong> o global ML se descola: <strong>XGBoost MASE 0.734</strong>, LightGBM 0.739 — o pooling rende mais na cauda de cidades com pouco histórico.</li>
+    <li><strong>Seasonal-naive falha out-of-sample (MASE 1.115 &gt; 1)</strong>: o ciclo semanal não se sustenta; a persistência simples (naive, 0.88) é a barra real. Combinado com <code>temperature_celsius_lag1</code> dominando a importância de features (≈6.9, ~8× a segunda), confirma que <strong>é um problema de persistência</strong>, não de ciclo.</li>
+    <li><strong>Anomalias:</strong> 6.218 sinalizadas (840 de alta confiança) sobre 147k snapshots.</li>
+    <li><strong>Forecast entregável:</strong> 7 dias à frente por cidade representativa (ex.: Canberra ≈ 17 °C em meados de junho — inverno do hemisfério Sul; Cairo ≈ 24 °C — verão do Norte), via blend por erro inverso.</li>
+    <li><strong>Correção via review adversarial:</strong> um review multi-perspectiva pegou um leakage multi-step sutil numa versão anterior do backtest global (prever a janela de 7 dias em lote deixava cada horizonte ler o real do dia anterior). Corrigido reformulando como <em>direct h-step forecaster</em>; o MASE honesto do global assentou em ~0.73 (painel) / ~0.79 (representativo), não o sub-0.7 inflado que um forecast vazante reportaria.</li>
+  </ul>
+</div>
+
+<h2>7. Competências demonstradas <span class="muted">(mapeamento para CV)</span></h2>
+<div class="grid">
+  <div class="card">
+    <h4>Data Science (DS)</h4>
+    <p>Forecasting de séries temporais (clássico + ML), backtesting rolling-origin, prevenção de data leakage, MASE e baselines, ensemble/stacking OOF, detecção de anomalia uni+multivariada, feature importance (permutation/SHAP/native), enquadramento honesto de limitações.</p>
+  </div>
+  <div class="card">
+    <h4>Data Engineering (DE)</h4>
+    <p>Pipeline modular com I/O nas bordas, single source of truth, Parquet tipado tz-aware, idempotência, graceful degradation (optional deps), validação de schema (pandera), src-layout + editable install, fallback sintético determinístico para CI.</p>
+  </div>
+  <div class="card">
+    <h4>Data Analysis (DA)</h4>
+    <p>EDA defensiva (nulos, duplicatas, cardinalidade, grão), correlações Spearman rank-robustas, zero-inflation analysis, cinco análises temáticas, visualização matplotlib + Plotly (mapas geo), storytelling em notebook reprodutível e REPORT.</p>
+  </div>
+  <div class="card">
+    <h4>Engenharia de software</h4>
+    <p>Testes (pytest, incl. testes de leakage), lint (ruff), funções puras e tipadas, design por contrato com asserts, documentação técnica (TECHNICAL_SPEC, REPORT), conventional commits, Git/GitHub.</p>
+  </div>
+</div>
+
+<h3>Bullets prontos para currículo</h3>
+<ul class="cv-bullets">
+  <li>Construí um pipeline end-to-end de previsão de temperatura (horizonte de 7 dias) sobre 147 mil snapshots meteorológicos de 268 cidades, em Python (pandas, statsmodels, XGBoost, scikit-learn), com 25 testes automatizados incluindo <em>guards</em> de data leakage.</li>
+  <li>Projetei um backtest <em>rolling-origin</em> leakage-safe e comparei modelos clássicos per-city (SARIMAX, ETS) contra um modelo global em painel (XGBoost), usando MASE para comparação cross-cidade; o modelo global atingiu MASE 0.734 no painel completo, batendo todos os baselines.</li>
+  <li>Implementei detecção de anomalias uni+multivariada (modified z-score, STL, IsolationForest ∩ LOF) relativa a (cidade, estação), sinalizando 6.218 eventos e distinguindo anomalias reais de artefatos de ingestão.</li>
+  <li>Identifiquei e corrigi, via review adversarial, um vazamento multi-step que inflava a métrica, reformulando o modelo global como <em>direct h-step forecaster</em> — reduzindo o MASE otimista de ~0.68 para um honesto ~0.73.</li>
+  <li>Entreguei o projeto com reprodutibilidade total (seeds fixas, Parquet tipado, idempotência), graceful degradation de dependências opcionais e fallback sintético determinístico para rodar sem o dataset.</li>
+</ul>
+
+<h2>8. Como reproduzir</h2>
+<pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;overflow:auto;font-family:var(--mono);font-size:.85rem;color:var(--text)">pip install -r requirements.txt &amp;&amp; pip install -e .
+# (opcional) coloque GlobalWeatherRepository.csv em data/raw/ — senão roda o fallback sintético
+python run_pipeline.py     # gera data/processed/*, reports/metrics/*, reports/figures/*
+pytest -q                  # 25 testes incl. leakage guards</pre>
+
+<footer>
+  <p><strong>Projeto:</strong> Weather Trend Forecasting · <strong>Repositório:</strong> github.com/Patrickfgf/weather-trend-forecasting · <strong>Dataset:</strong> Kaggle Global Weather Repository (nelgiriyewithana).</p>
+  <p class="muted">Documentos do repo: <code>README.md</code> / <code>README.pt-BR.md</code> (visão geral) · <code>REPORT.md</code> (análise) · <code>docs/TECHNICAL_SPEC.md</code> (metodologia). Números desta página: execução real de 2026-06-16.</p>
+</footer>
+
+</div>
+</body>
+</html>

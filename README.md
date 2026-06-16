@@ -1,5 +1,7 @@
 # Weather Trend Forecasting — Global Weather Repository
 
+> 🇧🇷 Versão em português: [`README.pt-BR.md`](README.pt-BR.md) · 📄 Brief técnico para CV/portfólio: [`project-brief.html`](project-brief.html)
+
 Forecasting daily **temperature** across world cities from the Kaggle
 [Global Weather Repository](https://www.kaggle.com/datasets/nelgiriyewithana/global-weather-repository)
 dataset, with a leakage-safe modeling pipeline, advanced anomaly detection, and five
@@ -119,19 +121,26 @@ These are enforced by `assert`s in code and by dedicated tests in `tests/test_fe
 - Parquet intermediates (typed, tz-preserving). Idempotent: same input → same output.
 - No absolute paths; everything is anchored to the project root.
 
-## Results snapshot (synthetic demonstration run)
+## Results snapshot (real Kaggle data run)
+
+Macro-averaged over (city × fold), representative cities, sorted by MASE:
 
 | model | MASE ↓ | MAE (°C) | note |
 |---|---|---|---|
-| **lgbm_global** | **0.79** | 2.26 | global panel ML — best |
-| xgb_global | 0.79 | 2.28 | |
-| sarimax | 0.82 | 2.34 | best classical |
-| seasonal_naive | 0.89 | 2.53 | primary benchmark |
-| climatology | 2.27 | 6.59 | weak on sub-annual history |
+| **sarimax** | **0.786** | 2.63 | best classical (per-city) |
+| xgb_global | 0.794 | 2.67 | statistical tie with SARIMAX |
+| lgbm_global | 0.800 | 2.67 | global panel ML |
+| naive | 0.884 | 2.96 | persistence — the real bar to beat |
+| seasonal_naive | 1.115 | 3.67 | fails out-of-sample (> 1) |
+| climatology | 1.527 | 4.79 | weak on sub-annual history |
 
-MASE < 1 means "beats seasonal-naive". The global ML model wins by pooling signal across
-cities. Full narrative and figures: [`REPORT.md`](REPORT.md). Numbers regenerate from the
-real Kaggle CSV when present.
+MASE < 1 means "beats seasonal-naive". On representative cities it's a statistical tie
+between classical SARIMAX and the global ML model; on the full 268-city panel the global
+model pulls ahead (XGBoost MASE **0.734**) and is the deployable choice (one model,
+generalizes to new cities). Seasonal-naive notably fails out-of-sample, so plain
+persistence is the bar — short-horizon temperature is a persistence problem
+(`temperature_celsius_lag1` dominates feature importance). Full narrative and figures:
+[`REPORT.md`](REPORT.md). Numbers regenerate from the real Kaggle CSV when present.
 
 ## License & contact
 
