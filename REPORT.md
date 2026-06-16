@@ -1,0 +1,185 @@
+# Weather Trend Forecasting — Analysis Report
+
+**Author:** Patrick · **Deliverable for:** PM Accelerator tech assessment
+**Dataset:** Kaggle *Global Weather Repository* (daily city snapshots)
+
+> **PM Accelerator mission.** Product Manager Accelerator (PMA), led by Dr. Nancy Li,
+> helps PM professionals at every career stage — from aspiring PMs to executives —
+> through hands-on, real-world AI product training, coaching, and a community built on
+> sharing and lifting others up; its PMA Kids nonprofit brings free PM education to
+> underserved teenagers. Source: <https://www.pmaccelerator.io/>
+
+> **Note on numbers.** The figures below come from the project's deterministic
+> **synthetic demonstration run** (so this report is reproducible without the Kaggle
+> download). Dropping the real `GlobalWeatherRepository.csv` into `data/raw/` and
+> re-running `python run_pipeline.py` regenerates every number and figure from real data.
+
+---
+
+## 1. Executive summary
+
+We forecast daily `temperature_celsius` per city. After defensive cleaning and
+leakage-safe feature engineering, we backtest two model families on identical
+rolling-origin folds and compare them by **MASE** (error relative to a seasonal-naive
+benchmark; < 1 = useful).
+
+**A global panel gradient-boosting model wins** (LightGBM MASE ≈ **0.79**, XGBoost ≈ 0.79
+on representative cities), beating the best classical per-city model (SARIMAX, 0.82) and
+every baseline by a realistic margin. The intuition is the senior takeaway of the whole
+exercise: per-city series here are short and noisy, so a **global model that pools signal
+across cities** generalizes better than fitting an ARIMA per 200-point series.
+
+## 2. Data, grain & quality
+
+- **Grain:** 1 row = one city's weather snapshot at one `last_updated` instant
+  (`country`, `location_name` is the entity key). ~40 raw columns.
+- **Schema hygiene at ingestion:** column names normalized to `snake_case`
+  (`air_quality_PM2.5` → `air_quality_pm2_5`), `last_updated` parsed **tz-aware UTC**,
+  imperial unit-twins dropped (`temperature_fahrenheit` is literally the target;
+  keeping it would leak). dtypes set explicitly (no silent `object`).
+- **Cleaning:**
+  - *De-duplication* — exact dupes removed; genuine key-collisions resolved keep-last
+    and logged (never silently averaged).
+  - *Physical gating* — impossible values (e.g. 150 °C) set to NaN as **sensor errors**,
+    distinct from rare-but-real extremes.
+  - *Imputation* — **per-city, time-aware**: continuous weather linearly interpolated
+    (short gaps), `precip_mm` filled 0 (structural "no rain"), air quality flagged with
+    `<col>_was_missing` (missingness is informative) then short-gap filled. The **target
+    is never imputed.**
+  - *Outliers* — **flagged, not clipped** (`<col>_is_outlier`) via per-(city, month)
+    robust MAD z-score. Clipping would delete the heatwaves/cold-snaps a forecaster most
+    needs to predict.
+
+## 3. Exploratory analysis
+
+Figures in `reports/figures/`:
+`eda_temperature_distribution.png`, `eda_temperature_trend.png`,
+`eda_precipitation_analysis.png`, `eda_seasonal_cycle.png`,
+`eda_global_aggregate.png`, `eda_correlation_spearman.png`.
+
+- Global temperature is **multimodal** (tropical/temperate/polar) — a single global
+  model therefore needs latitude features.
+- **Seasonality is hemisphere anti-phase**: December is summer in the South, winter in
+  the North; we split on `sign(latitude)` everywhere so pooling doesn't cancel the cycle.
+- **Precipitation is zero-inflated** (most days dry) — analysed as a dry/wet split with a
+  `log1p` view of wet-day amounts.
+- **Correlations use Spearman** (rank-robust to the heavy-tailed air-quality/gust
+  columns); the Pearson−Spearman gap is reported as a cheap nonlinearity detector.
+
+## 4. Anomaly detection (advanced EDA)
+
+Anomalies are defined **relative to (city, season)**, never the global pool — a −15 °C
+Reykjavík winter is locally normal. The pipeline combines:
+- robust **MAD z-score** on month-deseasonalized values + IQR-within-month,
+- **STL** residuals where series are long enough,
+- multivariate **IsolationForest ∩ LocalOutlierFactor** on season/geo-aware features.
+
+On the demo run it flagged **81 anomalies (15 high-confidence)**. The analysis goes
+beyond flagging: `anomaly_condition_lift.csv` ties anomalies to `condition_text`
+(sanity check that the detector finds real weather), and `anomaly_by_time.csv`
+distinguishes geographically-localised events from **suspected ingestion artifacts**
+(a single date where an outsized share of *all* cities spike). Figure:
+`anomaly_geography.png`.
+
+## 5. Feature engineering & leakage prevention
+
+40 model features, all causal:
+- **Calendar + cyclical** (`day_of_year`, `month`, `dayofweek`, `wind_degree` as sin/cos
+  so Dec-31 ≈ Jan-1), hemisphere-aware `season`, `abs_latitude`.
+- **Per-city lags** `{1,2,3,7,14}` and **rolling** mean/std/min/max `{3,7,14}` —
+  computed with `groupby(city).shift(1).rolling(...)` so a window never includes the
+  current row and one city never bleeds into another.
+- **Lagged exogenous** weather only (`humidity_lag1`, …). Contemporaneous weather and
+  `feels_like_*` are excluded — using them would be future leakage.
+
+These guarantees are tested (`tests/test_features.py`): lag equals prior value, rolling
+excludes the current row, no cross-city bleed, contemporaneous/leaky columns excluded.
+
+## 6. Backtesting protocol
+
+- **Rolling-origin / expanding-window CV** on a **global calendar date** axis (4 folds,
+  7-day horizon, ≥60-day min train), applied identically to every city so per-city
+  splits align. **No `KFold`, no shuffling** — those leak the future for an
+  autocorrelated target. Every fold asserts `train.max_day < test.min_day`.
+- **Metric hierarchy:** **MASE primary** (scale-free, comparable across cities), MAE/RMSE
+  for absolute interpretation, sMAPE reported, **MAPE guarded** (temperature crosses 0 °C,
+  so the percentage explodes — shown only to demonstrate awareness).
+
+## 7. Model comparison & results
+
+Macro-averaged over (city × fold), representative cities:
+
+| model | MASE ↓ | MAE (°C) | RMSE | sMAPE |
+|---|---|---|---|---|
+| **lgbm_global** | **0.79** | 2.26 | 2.60 | 22.7 |
+| xgb_global | 0.79 | 2.28 | 2.63 | 22.9 |
+| sarimax | 0.82 | 2.34 | 2.72 | 17.6 |
+| seasonal_naive | 0.89 | 2.53 | 3.02 | 20.6 |
+| ets | 0.91 | 2.59 | 2.93 | 19.2 |
+| naive | 0.97 | 2.75 | 3.11 | 19.8 |
+| drift | 1.02 | 2.88 | 3.23 | 19.9 |
+| climatology | 2.27 | 6.59 | 6.90 | 45.6 |
+
+The global models forecast every horizon **directly from the origin** (see the adversarial-
+review note below), so these are honest h-step-ahead scores — not a 1-step model in disguise.
+
+- **Baselines are mandatory** and they're not trivial to beat: persistence/seasonal-naive
+  sit at MASE ~0.9. A model below that line is genuinely adding value.
+- **Climatology is weak here** precisely because the sample is sub-annual — an honest
+  artifact of a short snapshot history, not a bug.
+- **Ensemble.** `ensemble_weights.json` blends models by inverse backtest error,
+  **dropping drift and climatology** (MASE > 1). **Stacking** (`stacking_weights.json`),
+  a non-negative meta-learner over out-of-fold GBM predictions, assigns ~0.98 to XGBoost
+  and ~0.04 to LightGBM — they're correlated, so the blend leans on the stronger learner.
+- **Deliverable forecast.** `data/processed/predictions.parquet` holds a 7-day-ahead
+  temperature forecast per representative city (inverse-error blend of the per-city
+  models), e.g. Canberra ≈ 26–28 °C in early March (late Southern-hemisphere summer).
+  Figure: `forecast_model_comparison.png`.
+
+> **Adversarial review & remediation.** An independent multi-perspective review of this
+> codebase caught a subtle **multi-step leakage** in an earlier version of the global
+> backtest: predicting the whole 7-day window in one batch let each horizon row read the
+> *previous day's actual* temperature. It was fixed by reframing Track B as a **direct
+> h-step forecaster** (label shifted h days; features only as of the origin). The numbers
+> above are post-fix and apples-to-apples with the per-city baselines — removing the leak
+> moved the global model's MASE from an over-optimistic ~0.68 to an honest ~0.79.
+
+## 8. Unique analyses
+
+- **Climate (`climate_*`)** — seasonal cycle by **latitude climate zone** with two-stage
+  means (city-mean then zone-mean, to avoid sampling-density bias). Framed honestly as
+  *within-sample seasonal* variation, not decadal trends (the data is sub-annual).
+- **Environmental impact (`air_quality_*`)** — Spearman correlation of pollutants vs
+  weather; PM2.5 rises in low wind (dispersion story). Caveats stated: correlation ≠
+  causation, heavy spatial confounding, and `us-epa-index` is derived from the pollutants
+  (near-tautological), so it's used for segmentation only.
+- **Feature importance (`feature_importance_*`)** — permutation importance (robust,
+  validation-only) confirms **`temperature_celsius_lag1` dominates** (≈7.4), then
+  `rollmean3`/`rollmin3`: short-horizon temperature is a persistence problem. SHAP and
+  native-gain lenses corroborate.
+- **Spatial (`spatial_*`)** — GDAL-free Plotly `scatter_geo` + country `choropleth`
+  (latest snapshot per city), plus an anomaly map (hotter/colder than same-latitude peers).
+- **Geographical (`geo_*`)** — country/continent comparison with `n_cities`/`n_days`
+  reported next to every mean (a one-city country's "national mean" is one city).
+
+## 9. Limitations & future work
+
+- **Short history.** The repository is a rolling daily snapshot (sub-annual to ~1 yr per
+  city), so annual seasonality and any climate *trend* are not learnable; we model weekly
+  seasonality and frame "climate" as within-sample. More history would unlock SARIMAX
+  with annual seasonality and real trend estimation.
+- **Single target.** We forecast temperature; precipitation/AQI are analysed, not
+  forecast. The same harness extends to them (with precipitation needing a zero-inflated
+  model and MAPE explicitly avoided).
+- **Recursive multi-step** for the global model and **conformal prediction intervals**
+  are natural next steps.
+- **Spatial confounding** in the air-quality story warrants a causal/mixed-effects
+  treatment before any causal claim.
+
+## 10. Reproducing this report
+
+```bash
+pip install -r requirements.txt && pip install -e .
+python run_pipeline.py        # regenerates data/processed/*, reports/metrics/*, reports/figures/*
+pytest -q                     # 20 tests incl. leakage guards
+```

@@ -1,0 +1,15 @@
+continent,epa_label,count,share
+Africa,Good,133,0.30227272727272725
+Africa,Moderate,307,0.6977272727272728
+Asia,Good,63,0.09545454545454546
+Asia,Moderate,572,0.8666666666666667
+Asia,Unhealthy (Sensitive),25,0.03787878787878788
+Europe,Good,316,0.47878787878787876
+Europe,Moderate,311,0.4712121212121212
+Europe,Unhealthy (Sensitive),33,0.05
+North America,Moderate,190,0.8636363636363636
+North America,Unhealthy (Sensitive),30,0.13636363636363635
+Oceania,Moderate,212,0.9636363636363636
+Oceania,Unhealthy (Sensitive),8,0.03636363636363636
+South America,Moderate,393,0.8931818181818182
+South America,Unhealthy (Sensitive),47,0.10681818181818181

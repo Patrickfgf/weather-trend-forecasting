@@ -1,0 +1,15 @@
+# Optional dependencies — the pipeline degrades gracefully if any are absent
+# (e.g. no wheel available for a brand-new Python interpreter). Install with:
+#   pip install -r requirements-optional.txt
+#
+# Each is import-guarded in weather_forecast/optional_deps.py; a missing wheel
+# becomes a logged skip, never a crash. A clean Restart-Run-All only needs the
+# pinned core stack in requirements.txt.
+lightgbm        # second gradient-boosting engine for the ensemble
+prophet         # additive decomposition forecaster (per-city, optional)
+shap            # SHAP feature attributions (TreeExplainer)
+pandera         # declarative dataframe schema validation
+kaleido         # static PNG export for plotly figures
+folium          # optional interactive leaflet maps
+pycountry-convert  # country -> continent mapping for geographical analysis
+# statsforecast  # no Python 3.14 wheel at time of writing — intentionally omitted
