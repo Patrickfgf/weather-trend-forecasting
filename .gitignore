@@ -23,6 +23,8 @@ __pycache__/
 # --- Build / env logs ---
 setup.log
 installed_freeze.txt
+*.log
+state.db
 
 # --- OS ---
 .DS_Store

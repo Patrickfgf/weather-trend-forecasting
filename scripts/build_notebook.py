@@ -96,7 +96,7 @@ print("leaky 'feels_like_*' excluded:", not any("feels_like" in c for c in fcols
 BACKTEST = '''\
 display(Markdown("**Model comparison (representative cities), sorted by MASE** - MASE<1 beats seasonal-naive"))
 display(show_csv("model_comparison.csv"))
-show_fig("forecast_model_comparison.png", "Global panel ML (XGBoost) wins by pooling signal across cities.")
+show_fig("forecast_model_comparison.png", "SARIMAX and the global GBM tie on representative cities; the GBM wins on the full panel.")
 print("ensemble weights:", json.loads((MET / "ensemble_weights.json").read_text()))
 print("stacking weights:", json.loads((MET / "stacking_weights.json").read_text()))
 display(Markdown("**7-day-ahead temperature forecast per representative city**"))
@@ -148,9 +148,10 @@ cells = [
        "and spatial / cross-country geography."),
     code(ANALYSES),
     md("## 7. Conclusions\n"
-       "- A **global panel gradient-boosting model wins** (MASE ≈ 0.71 representative / 0.68 full panel), "
-       "beating per-city classical models and all baselines — short, noisy per-city series benefit from "
-       "pooling.\n"
+       "- On representative cities it is a **statistical tie** between SARIMAX (MASE ≈ 0.79) and the "
+       "global gradient-boosting model (XGBoost ≈ 0.79); the **global model wins on the full 268-city "
+       "panel (MASE ≈ 0.73)** and is the deployable choice — one model, generalizes to new cities, "
+       "no per-city refit.\n"
        "- **Leakage is controlled** by construction (chronological CV, shifted per-city features, lagged "
        "exogenous, target-twin exclusion) and verified by tests.\n"
        "- Short snapshot history limits annual seasonality / trend claims — framed honestly throughout.\n\n"
