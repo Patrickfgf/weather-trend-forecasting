@@ -299,7 +299,7 @@ def choose_representative_cities(
 
     abs_lat = cat["latitude"].abs()
     cat = cat.assign(
-        zone=[_climate_zone(a, l) for a, l in zip(abs_lat, cat["latitude"])]
+        zone=[_climate_zone(a, lat) for a, lat in zip(abs_lat, cat["latitude"], strict=True)]
     )
     # Deterministic ordering: best coverage first, then stable name tie-break.
     cat = cat.sort_values(

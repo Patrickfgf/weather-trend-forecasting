@@ -273,7 +273,7 @@ def _binned_median(driver: pd.Series, pm: pd.Series, driver_name: str, q: int = 
 # --------------------------------------------------------------------------- #
 # Figures (plotly) — return a Figure; never .show()
 # --------------------------------------------------------------------------- #
-def fig_aq_weather_heatmap(corr_df: pd.DataFrame, out: "Path | None" = None) -> go.Figure:
+def fig_aq_weather_heatmap(corr_df: pd.DataFrame, out: Path | None = None) -> go.Figure:
     """Annotated diverging heatmap of weather x pollutant Spearman correlation.
 
     Accepts either the tidy long frame from :func:`aq_weather_correlation` or an
@@ -316,7 +316,7 @@ def fig_aq_weather_heatmap(corr_df: pd.DataFrame, out: "Path | None" = None) -> 
     return fig
 
 
-def fig_pm_vs_wind(binned_df: pd.DataFrame, out: "Path | None" = None) -> go.Figure:
+def fig_pm_vs_wind(binned_df: pd.DataFrame, out: Path | None = None) -> go.Figure:
     """Line of median PM vs wind quantile bin (the ventilation/wash-out view).
 
     Reads the wind rows out of :func:`wind_precip_vs_pm`. A downward slope across
@@ -359,7 +359,7 @@ def fig_pm_vs_wind(binned_df: pd.DataFrame, out: "Path | None" = None) -> go.Fig
     return fig
 
 
-def fig_epa_by_continent(summary_df: pd.DataFrame, out: "Path | None" = None) -> go.Figure:
+def fig_epa_by_continent(summary_df: pd.DataFrame, out: Path | None = None) -> go.Figure:
     """Stacked bar of EPA-category SHARE per continent (green -> maroon ramp).
 
     Reads the output of :func:`epa_index_summary`. Shares (not counts) so continents
@@ -418,7 +418,7 @@ def _pretty(col: str) -> str:
     return col.replace("air_quality_", "").replace("_", " ")
 
 
-def _maybe_write(fig: go.Figure, out: "Path | None") -> None:
+def _maybe_write(fig: go.Figure, out: Path | None) -> None:
     """Persist a plotly figure ONLY when `out` is given.
 
     Uses static PNG via kaleido when available; otherwise falls back to a

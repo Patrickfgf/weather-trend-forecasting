@@ -169,7 +169,7 @@ def _inject_quality_issues(df: pd.DataFrame, rng: np.random.Generator) -> pd.Dat
     return pd.concat([df, dups], ignore_index=True)
 
 
-def write_synthetic_csv(path=None, **kwargs) -> "object":
+def write_synthetic_csv(path=None, **kwargs) -> object:
     """Write a synthetic raw CSV to ``path`` (default: data/raw candidate). Returns the path."""
     from pathlib import Path
     if path is None:

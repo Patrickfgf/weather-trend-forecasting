@@ -6,9 +6,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from weather_forecast import cleaning
+from weather_forecast import cleaning, ingest, synthetic
 from weather_forecast import engineering as fe
-from weather_forecast import ingest, synthetic
 
 
 @pytest.fixture(scope="session")

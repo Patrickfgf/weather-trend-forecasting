@@ -15,17 +15,33 @@ import logging
 import random
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from . import (  # noqa: E402
-    air_quality, anomaly, backtest, cleaning, climate, config, ensemble,
-    feature_importance as fi, ingest, metrics, models, optional_deps, plots,
-    profiling, regions, spatial,
+    air_quality,
+    anomaly,
+    backtest,
+    cleaning,
+    climate,
+    config,
+    ensemble,
+    ingest,
+    metrics,
+    models,
+    optional_deps,
+    plots,
+    profiling,
+    regions,
+    spatial,
 )
 from . import engineering as fe  # noqa: E402
+from . import (
+    feature_importance as fi,
+)
 from .logging_utils import setup_logging  # noqa: E402
 
 log = logging.getLogger("weather_forecast.pipeline")
@@ -137,8 +153,8 @@ def _run_forecasting(clean: pd.DataFrame, feats: pd.DataFrame, rep_cities: list)
     _save_mpl(_try("fig:model_cmp", lambda: plots.plot_model_comparison(comparison)), "forecast_model_comparison.png")
 
     # Ensemble weights (drop models worse than seasonal-naive)
-    mae_by = dict(zip(comparison.model, comparison.mae))
-    mase_by = dict(zip(comparison.model, comparison.mase))
+    mae_by = dict(zip(comparison.model, comparison.mae, strict=True))
+    mase_by = dict(zip(comparison.model, comparison.mase, strict=True))
     weights = ensemble.inverse_error_weights(mae_by, alpha=1.0, drop_above=1.0, drop_metric=mase_by)
     (config.METRICS_DIR / "ensemble_weights.json").write_text(json.dumps(weights, indent=2))
 
@@ -169,8 +185,8 @@ def _final_forecasts(series: dict, comparison: pd.DataFrame) -> pd.DataFrame | N
         "ets": models.ets_forecast,
         "climatology": metrics.climatology_forecast,
     }
-    mae_by = dict(zip(comparison.model, comparison.mae))
-    mase_by = dict(zip(comparison.model, comparison.mase))
+    mae_by = dict(zip(comparison.model, comparison.mae, strict=True))
+    mase_by = dict(zip(comparison.model, comparison.mase, strict=True))
     w = ensemble.inverse_error_weights({k: mae_by[k] for k in per_city_models if k in mae_by},
                                        drop_above=1.0,
                                        drop_metric={k: mase_by.get(k, np.nan) for k in per_city_models})

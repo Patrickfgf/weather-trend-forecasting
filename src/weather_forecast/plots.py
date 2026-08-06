@@ -53,7 +53,7 @@ _SHORT_SPAN_NOTE: str = (
 # --------------------------------------------------------------------------- #
 # Small private helpers (DRY: save, empty-panel, span string).
 # --------------------------------------------------------------------------- #
-def _finalize(fig: plt.Figure, out: "Path | None") -> plt.Figure:
+def _finalize(fig: plt.Figure, out: Path | None) -> plt.Figure:
     """Tight-layout, optionally savefig, and return the figure.
 
     Centralizes the savefig contract (only write when ``out`` is set; dpi=150,
@@ -93,7 +93,7 @@ def plot_temperature_distribution(
     df: pd.DataFrame,
     target: str = config.TARGET,
     hue: str = "hemisphere",
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Histogram + KDE of the target; overlay per-hemisphere when ``hue`` exists.
 
@@ -151,7 +151,7 @@ def plot_temperature_trend(
     freq: str = "MS",
     rolling: int = 3,
     target: str = config.TARGET,
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Small-multiples: per-city resampled mean + rolling overlay + polyfit slope.
 
@@ -249,7 +249,7 @@ def _polyfit_slope_per_year(series: pd.Series) -> str:
 # --------------------------------------------------------------------------- #
 def plot_precipitation_analysis(
     df: pd.DataFrame,
-    out: "Path | None" = None,
+    out: Path | None = None,
     top_n: int = 10,
 ) -> plt.Figure:
     """Three precip views: %dry-day extremes, log1p wet-day hist, precip vs humidity.
@@ -330,7 +330,7 @@ def _panel_precip_humidity(ax: plt.Axes, df: pd.DataFrame, precip: pd.Series) ->
 def plot_correlation(
     corrs: dict,
     which: str = "spearman",
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Annotated diverging heatmap of a correlation matrix from a ``corrs`` dict.
 
@@ -378,7 +378,7 @@ def plot_correlation(
 def plot_seasonal_cycle(
     df: pd.DataFrame,
     target: str = config.TARGET,
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Boxplot of target by month, split N vs S hemisphere to show anti-phase.
 
@@ -396,7 +396,7 @@ def plot_seasonal_cycle(
     vals = pd.to_numeric(df[target], errors="coerce")
     hemi = df["hemisphere"] if "hemisphere" in df.columns else None
     panels = [("N", "Northern hemisphere"), ("S", "Southern hemisphere")]
-    for ax, (key, label) in zip(axes, panels):
+    for ax, (key, label) in zip(axes, panels, strict=False):
         if hemi is None:
             sel = pd.Series(True, index=df.index) if key == "N" else pd.Series(False, index=df.index)
             label = "all cities" if key == "N" else "no hemisphere column"
@@ -429,11 +429,11 @@ def _boxplot_by_month(ax: plt.Axes, vals: pd.Series, month: pd.Series) -> None:
         return
     data = [frame.loc[frame["m"] == m, "v"].to_numpy() for m in range(1, 13)]
     positions = [m for m in range(1, 13)]
-    keep = [(p, d) for p, d in zip(positions, data) if d.size > 0]
+    keep = [(p, d) for p, d in zip(positions, data, strict=True) if d.size > 0]
     if not keep:
         _empty_panel(ax, "no data")
         return
-    pos, dat = zip(*keep)
+    pos, dat = zip(*keep, strict=True)
     ax.boxplot(dat, positions=pos, widths=0.6, showfliers=False)
     ax.set_xticks(range(1, 13))
     ax.set_xticklabels(_MONTH_LABELS, fontsize=8)
@@ -446,7 +446,7 @@ def plot_global_aggregate(
     df: pd.DataFrame,
     target: str = config.TARGET,
     freq: str = "MS",
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Median +/- IQR band of the target across all cities over time (robust).
 
@@ -487,7 +487,7 @@ def plot_global_aggregate(
 def plot_anomaly_scores(
     scores,
     contamination: float = config.CONTAMINATION,
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Histogram of anomaly scores with the contamination-quantile cut line.
 
@@ -520,7 +520,7 @@ def plot_anomaly_scores(
 def plot_anomaly_geography(
     anom_df: pd.DataFrame,
     base_df: pd.DataFrame,
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> plt.Figure:
     """Lat/lon scatter of all cities with anomalies highlighted (no geo deps).
 
@@ -560,7 +560,7 @@ def plot_anomaly_geography(
 # --------------------------------------------------------------------------- #
 def plot_model_comparison(
     summary_df: pd.DataFrame,
-    out: "Path | None" = None,
+    out: Path | None = None,
     metric: str = "MASE",
 ) -> plt.Figure:
     """Horizontal bar of MASE by model with a baseline reference line at MASE=1.

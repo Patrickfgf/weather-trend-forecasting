@@ -242,7 +242,7 @@ def compare_importances(frames: dict[str, pd.DataFrame], on: str = "feature") ->
 # --------------------------------------------------------------------------- #
 # Figures
 # --------------------------------------------------------------------------- #
-def _save(fig: "plt.Figure", out: "Path | None") -> None:
+def _save(fig: plt.Figure, out: Path | None) -> None:
     """Save only when ``out`` is given (project figure convention)."""
     if out is not None:
         out = Path(out)
@@ -251,7 +251,7 @@ def _save(fig: "plt.Figure", out: "Path | None") -> None:
 
 
 def fig_permutation_importance(perm_df: pd.DataFrame, top: int = DEFAULT_TOP_N,
-                               out: "Path | None" = None) -> "plt.Figure":
+                               out: Path | None = None) -> plt.Figure:
     """Horizontal bar of the top-``top`` permutation importances with std error bars.
 
     The headline figure: validation-split importance (mean over repeats) with the across-
@@ -286,7 +286,7 @@ def fig_permutation_importance(perm_df: pd.DataFrame, top: int = DEFAULT_TOP_N,
 
 
 def fig_importance_comparison(compare_df: pd.DataFrame, top: int = DEFAULT_TOP_N,
-                              out: "Path | None" = None) -> "plt.Figure":
+                              out: Path | None = None) -> plt.Figure:
     """Slope chart of native-gain rank vs permutation rank — disagreement made visible.
 
     Connects each top feature's "native gain (biased)" rank to its "permutation

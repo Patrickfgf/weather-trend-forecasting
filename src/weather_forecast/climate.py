@@ -182,7 +182,7 @@ def period_over_period(
 # --------------------------------------------------------------------------- #
 # Figures (plotly; never .show())
 # --------------------------------------------------------------------------- #
-def _maybe_export(fig: go.Figure, out: "Path | None") -> None:
+def _maybe_export(fig: go.Figure, out: Path | None) -> None:
     """Export a plotly figure when ``out`` is set: PNG if kaleido is present, else HTML.
 
     Degrades gracefully — never crashes the pipeline because a static-export wheel is
@@ -199,7 +199,7 @@ def _maybe_export(fig: go.Figure, out: "Path | None") -> None:
 
 
 def fig_seasonal_cycle(
-    cycle_df: pd.DataFrame, value_col: str = config.TARGET, out: "Path | None" = None
+    cycle_df: pd.DataFrame, value_col: str = config.TARGET, out: Path | None = None
 ) -> go.Figure:
     """Line per region over ``year_month`` with a p10-p90 band. One trace pair per region.
 
@@ -259,7 +259,7 @@ def fig_zone_distributions(
     df: pd.DataFrame,
     value_col: str = config.TARGET,
     region_col: str = "climate_zone",
-    out: "Path | None" = None,
+    out: Path | None = None,
 ) -> go.Figure:
     """Box+violin of ``value_col`` by ``region_col`` over city-month means (de-densified).
 
@@ -310,7 +310,7 @@ def fig_zone_distributions(
 
 
 def fig_climate_heatmap(
-    cycle_df: pd.DataFrame, value_col: str = config.TARGET, out: "Path | None" = None
+    cycle_df: pd.DataFrame, value_col: str = config.TARGET, out: Path | None = None
 ) -> go.Figure:
     """Region x calendar-month heatmap of the two-stage mean ``value_col``.
 

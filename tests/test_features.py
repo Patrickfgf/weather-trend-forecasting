@@ -10,9 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from weather_forecast import config
+from weather_forecast import config, ingest
 from weather_forecast import engineering as fe
-from weather_forecast import ingest
 
 
 def _toy() -> pd.DataFrame:
